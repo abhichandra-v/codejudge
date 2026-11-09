@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 import urllib.error
 import urllib.request
 from typing import Optional
@@ -103,11 +104,33 @@ class MockModel:
 
 # --- HTTP helpers ----------------------------------------------------------
 
-def _post_json(url: str, payload: dict, headers: dict, timeout: float = 120.0) -> dict:
+def _post_json(url: str, payload: dict, headers: dict, timeout: float = 120.0,
+               retries: int = 4) -> dict:
     data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
-    with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 - fixed scheme
-        return json.loads(resp.read().decode("utf-8"))
+    last_err: Optional[Exception] = None
+    for attempt in range(retries + 1):
+        req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
+                return json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            last_err = e
+            if e.code in (429, 500, 502, 503, 504) and attempt < retries:
+                retry_after = e.headers.get("Retry-After") if e.headers else None
+                delay = (float(retry_after) if retry_after and retry_after.isdigit()
+                         else min(2 ** attempt, 30))
+                time.sleep(delay)
+                continue
+            raise
+        except urllib.error.URLError as e:
+            last_err = e
+            if attempt < retries:
+                time.sleep(min(2 ** attempt, 30))
+                continue
+            raise
+    if last_err:
+        raise last_err
+    raise RuntimeError("request failed without an error")  # pragma: no cover
 
 
 # --- Ollama ----------------------------------------------------------------

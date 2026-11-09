@@ -106,15 +106,26 @@ were written by a frontier model (Claude Opus) from the task prompts, then
 executed and judged by the harness (`--solutions` above). Full output:
 [`examples/claude-opus-report.md`](examples/claude-opus-report.md).
 
-| model       | pass rate    | traps fooled |
-| ----------- | ------------ | ------------ |
-| claude-opus | 29/29 (100%) | 0/11         |
-| mock-naive  | 18/29 (62%)  | 11/11        |
+An **independent model** (`stealth/crouton-alpha`, run live via the OpenRouter
+API — it never saw the hidden tests and did not design the suite) was judged the
+same way. Full output: [`examples/crouton-alpha-report.md`](examples/crouton-alpha-report.md).
 
-> Caveat: the same author wrote both this task suite and those solutions, so
-> 100% reflects the harness correctly executing and judging genuine model
-> output — not a blind measure of task difficulty. For an unbiased benchmark,
-> run a model that did not design the suite (Ollama or an API).
+| model                     | pass rate    | traps fooled |
+| ------------------------- | ------------ | ------------ |
+| stealth/crouton-alpha (independent, live API) | 29/29 (100%) | 0/11 |
+| claude-opus (self-written solutions)          | 29/29 (100%) | 0/11 |
+| mock-naive (baseline)                         | 18/29 (62%)  | 11/11        |
+
+The naive baseline is caught by all 11 traps (10 edge-case failures + 1
+timeout); both real models passed every task, including all 11 traps. The
+mock-naive column is the reference "weak model" the harness is designed to
+catch.
+
+> Note: I authored both the task suite and the `claude-opus` solutions, so that
+> row demonstrates the harness executing and judging genuine model output rather
+> than measuring difficulty. The `crouton-alpha` row is the unbiased run — a
+> model with no connection to the suite. To push pass rates below 100%, add
+> harder tasks or run a smaller local model (e.g. a 3B via Ollama).
 
 ## The tasks
 
