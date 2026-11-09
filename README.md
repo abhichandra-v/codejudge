@@ -58,6 +58,14 @@ python -m codejudge run --models "ollama:qwen2.5-coder,ollama:llama3.1"
 python -m codejudge run --models "anthropic:claude-3-5-sonnet-20241022,openai:gpt-4o-mini"
 ```
 
+Or **judge solutions a model already wrote** — drop one `<task_id>.py` file per
+task into a directory and point codejudge at it (no model server needed at run
+time):
+
+```bash
+python -m codejudge run --solutions "claude-opus=examples/claude-opus-solutions" --models naive
+```
+
 Useful flags: `--timeout 10` (per-task seconds), `--executor docker`,
 `--only-traps`, `--tasks t01_mutable_default,b10_is_prime`,
 `--categories math,strings`, `--out results/`.
@@ -90,6 +98,23 @@ The naive model is caught by every trap; the careful model is caught only by the
 two subtlest ones (Unicode case folding and banker's rounding). These are
 illustrative numbers from the deterministic mock models — run a real model via
 Ollama or an API to get its numbers.
+
+### Example: judging real model-written code
+
+The solutions under [`examples/claude-opus-solutions/`](examples/claude-opus-solutions)
+were written by a frontier model (Claude Opus) from the task prompts, then
+executed and judged by the harness (`--solutions` above). Full output:
+[`examples/claude-opus-report.md`](examples/claude-opus-report.md).
+
+| model       | pass rate    | traps fooled |
+| ----------- | ------------ | ------------ |
+| claude-opus | 29/29 (100%) | 0/11         |
+| mock-naive  | 18/29 (62%)  | 11/11        |
+
+> Caveat: the same author wrote both this task suite and those solutions, so
+> 100% reflects the harness correctly executing and judging genuine model
+> output — not a blind measure of task difficulty. For an unbiased benchmark,
+> run a model that did not design the suite (Ollama or an API).
 
 ## The tasks
 

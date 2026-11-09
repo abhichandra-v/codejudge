@@ -4,6 +4,7 @@ from codejudge.providers import (
     CAREFUL_MISSES,
     MockModel,
     OllamaModel,
+    StaticModel,
     build_prompt,
     extract_code,
     make_model,
@@ -61,3 +62,17 @@ def test_make_model_unknown_raises():
         make_model("banana:x")
     with pytest.raises(ValueError):
         make_model("nonsense")
+
+
+def test_static_model_reads_solution(tmp_path):
+    task = TASKS_BY_ID["b01_fizzbuzz"]
+    (tmp_path / f"{task.id}.py").write_text("def fizzbuzz(n):\n    return []\n")
+    model = StaticModel("claude", str(tmp_path))
+    assert model.name == "claude"
+    assert "def fizzbuzz" in model.complete(task)
+
+
+def test_static_model_missing_file_raises(tmp_path):
+    task = TASKS_BY_ID["b01_fizzbuzz"]
+    with pytest.raises(FileNotFoundError):
+        StaticModel("claude", str(tmp_path)).complete(task)

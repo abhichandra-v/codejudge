@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 
 from .classify import LABELS, Outcome
 from .harness import run_eval, verify_suite
-from .providers import make_model
+from .providers import StaticModel, make_model
 from .report import to_console, to_markdown
 from .runner import make_executor
 from .task_suite import CATEGORIES, TRAP_TYPES, get_tasks
@@ -47,10 +47,18 @@ def cmd_run(args) -> int:
         return 1
 
     try:
-        models = [make_model(spec) for spec in _split(args.models)]
+        models = [make_model(spec) for spec in (_split(args.models) or [])]
+        for item in (args.solutions or []):
+            name, sep, directory = item.partition("=")
+            if not sep or not directory:
+                raise ValueError(f"--solutions expects NAME=DIR, got {item!r}")
+            models.append(StaticModel(name, directory))
     except (ValueError, RuntimeError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 1
+
+    if not models:  # nothing specified: fall back to the offline mock models
+        models = [make_model("naive"), make_model("careful")]
 
     executor = make_executor(args.executor, timeout=args.timeout)
     print(f"Running {len(models)} model(s) x {len(tasks)} task(s) "
@@ -110,8 +118,10 @@ def build_parser() -> argparse.ArgumentParser:
     sp.set_defaults(func=cmd_list)
 
     sp = sub.add_parser("run", help="run models against the suite")
-    sp.add_argument("--models", default="naive,careful",
+    sp.add_argument("--models", default=None,
                     help="comma-separated model specs (default: naive,careful)")
+    sp.add_argument("--solutions", action="append", metavar="NAME=DIR",
+                    help="judge pre-written solutions in DIR, labelled NAME (repeatable)")
     sp.add_argument("--timeout", type=float, default=10.0, help="per-task timeout in seconds")
     sp.add_argument("--executor", default="subprocess", choices=["subprocess", "docker"])
     sp.add_argument("--out", default="results", help="output directory")

@@ -61,6 +61,26 @@ def extract_code(text: str, entry_point: Optional[str] = None) -> str:
     return text.strip() + "\n"
 
 
+# --- static (solutions written to a directory) -----------------------------
+
+class StaticModel:
+    """Serve pre-written solutions from a directory of ``<task_id>.py`` files.
+
+    Lets you judge any model's output offline: dump each solution to
+    ``<directory>/<task_id>.py`` and point a StaticModel at it. A task with no
+    file is reported as a failure to produce a solution (a fair "no answer").
+    """
+
+    def __init__(self, name: str, directory: str):
+        self.name = name
+        self.directory = directory
+
+    def complete(self, task: Task) -> str:
+        path = os.path.join(self.directory, f"{task.id}.py")
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read()
+
+
 # --- mock (offline) --------------------------------------------------------
 
 class MockModel:
