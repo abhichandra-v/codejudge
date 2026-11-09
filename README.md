@@ -1,7 +1,7 @@
 # codejudge
 
 A small, sandboxed harness for evaluating **LLM-written Python code** against
-hidden test suites. It ships with 29 hand-written tasks — a third of them
+hidden test suites. It ships with 35 hand-written tasks — 17 of them
 *traps* designed to make a plausible-but-wrong solution pass the obvious cases
 and fail on a specific edge case — generates a solution from a model, runs it
 in an isolated subprocess with a timeout, classifies each failure, and prints a
@@ -79,19 +79,19 @@ python -m codejudge verify
 
 ## Example results (built-in mock models)
 
-From `python -m codejudge run --models naive,careful` on the 29-task suite:
+From `python -m codejudge run --models naive,careful` on the 35-task suite:
 
 | model        | pass rate   | traps fooled |
 | ------------ | ----------- | ------------ |
-| mock-naive   | 18/29 (62%) | 11/11        |
-| mock-careful | 27/29 (93%) | 2/11         |
+| mock-naive   | 18/35 (51%) | 17/17        |
+| mock-careful | 33/35 (94%) | 2/17         |
 
 Failure breakdown:
 
 | outcome           | mock-naive | mock-careful |
 | ----------------- | ---------- | ------------ |
-| pass              | 18         | 27           |
-| edge-case failure | 10         | 2            |
+| pass              | 18         | 33           |
+| edge-case failure | 16         | 2            |
 | timeout           | 1          | 0            |
 
 The naive model is caught by every trap; the careful model is caught only by the
@@ -112,25 +112,26 @@ same way. Full output: [`examples/crouton-alpha-report.md`](examples/crouton-alp
 
 | model                     | pass rate    | traps fooled |
 | ------------------------- | ------------ | ------------ |
-| stealth/crouton-alpha (independent, live API) | 29/29 (100%) | 0/11 |
-| claude-opus (self-written solutions)          | 29/29 (100%) | 0/11 |
-| mock-naive (baseline)                         | 18/29 (62%)  | 11/11        |
+| stealth/crouton-alpha (independent, live API) | 35/35 (100%) | 0/17 |
+| claude-opus (self-written solutions)          | 35/35 (100%) | 0/17 |
+| mock-naive (baseline)                         | 18/35 (51%)  | 17/17        |
 
-The naive baseline is caught by all 11 traps (10 edge-case failures + 1
-timeout); both real models passed every task, including all 11 traps. The
+The naive baseline is caught by all 17 traps (16 edge-case failures + 1
+timeout); both real models passed every task, including all 17 traps. The
 mock-naive column is the reference "weak model" the harness is designed to
 catch.
 
 > Note: I authored both the task suite and the `claude-opus` solutions, so that
 > row demonstrates the harness executing and judging genuine model output rather
 > than measuring difficulty. The `crouton-alpha` row is the unbiased run — a
-> model with no connection to the suite. To push pass rates below 100%, add
-> harder tasks or run a smaller local model (e.g. a 3B via Ollama).
+> model with no connection to the suite. A capable model clears all 17 traps; to
+> drive pass rates below 100%, run a smaller local model (e.g. a 3B via Ollama),
+> which trips on several, or add still-harder tasks.
 
 ## The tasks
 
-29 tasks across `algorithms`, `data-structures`, `gotchas`, `math` and
-`strings`. 11 are traps, each targeting a specific, well-known failure mode:
+35 tasks across `algorithms`, `data-structures`, `gotchas`, `math` and
+`strings`. 17 are traps, each targeting a specific, well-known failure mode:
 
 | trap task                 | trap type                | the mistake it catches |
 | ------------------------- | ------------------------ | ---------------------- |
@@ -145,6 +146,12 @@ catch.
 | t09_falsy_default         | falsy-vs-none            | `value or default` also replaces 0, '' and [] |
 | t10_bankers_rounding      | bankers-rounding         | `round(2.5)` is 2, not 3 (round-half-to-even) |
 | t11_slow_fibonacci        | exponential-time         | O(2ⁿ) recursion times out around n=40 |
+| h01_round_money           | decimal-money-rounding   | `round(2.675, 2)` is 2.67; needs Decimal half-up |
+| h02_isqrt_precision       | float-sqrt-precision     | `int(math.sqrt(n))` is off for huge n; use `isqrt` |
+| h03_leap_year             | leap-year-century        | `year % 4 == 0` calls 1900 a leap year |
+| h04_unicode_normalize     | unicode-normalization    | `==` sees composed 'é' and 'e'+accent as different |
+| h05_title_apostrophe      | str-title-apostrophe     | `str.title()` makes "they're" into "They'Re" |
+| h06_mutate_in_place        | mutate-during-iteration  | `list.remove()` while iterating skips elements |
 
 Every task — trap or not — also carries ordinary edge cases (empty inputs,
 boundaries, negatives, wrap-around).
@@ -246,7 +253,7 @@ for r in results:
 ## Development
 
 ```bash
-python -m pytest        # 114 tests for the harness itself
+python -m pytest        # 140 tests for the harness itself
 python -m codejudge verify
 ```
 
@@ -260,7 +267,7 @@ every naive solution is actually caught by an edge case).
 ```
 codejudge/
   core.py            # Task / Case data model + case builders
-  task_suite/        # the 29 tasks (traps.py + basics.py)
+  task_suite/        # the 35 tasks (traps.py, hard.py, basics.py)
   providers.py       # mock, Ollama, OpenAI, Anthropic models
   runner.py          # SubprocessExecutor + DockerExecutor
   _sandbox_runner.py # the script executed in the isolated process

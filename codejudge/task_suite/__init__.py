@@ -6,9 +6,10 @@ from typing import Dict, List
 
 from ..core import Task
 from .basics import BASIC_TASKS
+from .hard import HARD_TASKS
 from .traps import TRAP_TASKS
 
-ALL_TASKS: List[Task] = TRAP_TASKS + BASIC_TASKS
+ALL_TASKS: List[Task] = TRAP_TASKS + HARD_TASKS + BASIC_TASKS
 TASKS_BY_ID: Dict[str, Task] = {t.id: t for t in ALL_TASKS}
 
 # Sanity check: no duplicate ids.

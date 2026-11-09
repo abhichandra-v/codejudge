@@ -27,10 +27,10 @@ def run_in_process(source, task):
 
 
 def test_suite_size_and_trap_fraction():
-    assert 20 <= len(ALL_TASKS) <= 30, f"suite has {len(ALL_TASKS)} tasks"
+    assert 20 <= len(ALL_TASKS) <= 40, f"suite has {len(ALL_TASKS)} tasks"
     traps = [t for t in ALL_TASKS if t.is_trap]
-    # "about a third" -- at least a quarter, no more than half
-    assert len(ALL_TASKS) // 4 <= len(traps) <= len(ALL_TASKS) // 2
+    # at least a third are traps, no more than half
+    assert len(ALL_TASKS) // 3 <= len(traps) <= len(ALL_TASKS) // 2
 
 
 def test_ids_unique():

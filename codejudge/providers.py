@@ -128,6 +128,12 @@ def _post_json(url: str, payload: dict, headers: dict, timeout: float = 120.0,
                 time.sleep(min(2 ** attempt, 30))
                 continue
             raise
+        except OSError as e:  # e.g. ConnectionResetError, TimeoutError (not URLError)
+            last_err = e
+            if attempt < retries:
+                time.sleep(min(2 ** attempt, 30))
+                continue
+            raise
     if last_err:
         raise last_err
     raise RuntimeError("request failed without an error")  # pragma: no cover
